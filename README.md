@@ -1,5 +1,7 @@
 ### Hi there 👋
 
+[![Codeforces Badge](http://mosesxu.ca/judge-badge/codeforces/normankr07)](https://codeforces.com/profile/normankr07)
+
 <!--
 **KNN-07/KNN-07** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
