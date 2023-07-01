@@ -1,6 +1,10 @@
 ### Hi there 👋
-
+### Skill issue competitive programmer
 [![Codeforces Badge](http://mosesxu.ca/judge-badge/codeforces/normankr07)](https://codeforces.com/profile/normankr07)
+
+## stats
+[![norman's GitHub stats](https://github-readme-stats.vercel.app/api?username=KNN-07&theme=dracula&show_icons=true)](https://github.com/anuraghazra/github-readme-stats)
+[![Top Languages](https://github-readme-stats.vercel.app/api/top-langs/?username=KNN-07&layout=compact&langs_count=6&hide=assembly,css,html,scss,swift,emacs%20lisp,vim%20script,objective-c,logos,asl&theme=dracula)](https://github.com/anuraghazra/github-readme-stats)
 
 <!--
 **KNN-07/KNN-07** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
