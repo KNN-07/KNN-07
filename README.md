@@ -21,6 +21,8 @@
 ![CSS](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)
 
+# Not Tech Stack
+![osu!](https://img.shields.io/static/v1?style=for-the-badge&message=osu%21&color=FF66AA&logo=osu%21&logoColor=FFFFFF&label=)
 
 # Stats
 [![norman's GitHub stats](https://github-readme-stats.vercel.app/api?username=KNN-07&theme=dracula&show_icons=true)](https://github.com/anuraghazra/github-readme-stats)
