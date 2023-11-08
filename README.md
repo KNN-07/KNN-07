@@ -9,7 +9,7 @@
 # Developing Environment
 ![IOS](https://img.shields.io/badge/iOS-000000?style=for-the-badge&logo=ios&logoColor=white)
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
-![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
+![Windows](https://img.shields.io/badge/Windows-10/11-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 
 
 # Tech Stack
@@ -40,6 +40,8 @@
 [![Valorant](https://img.shields.io/static/v1?style=for-the-badge&message=Valorant&color=FA4454&logo=Valorant&logoColor=FFFFFF&label=)](https://tracker.gg/valorant/profile/riot/weebshiet%23NOM/overview)
 ![Counter-Strike](https://img.shields.io/static/v1?style=for-the-badge&message=Counter-Strike&color=000000&logo=Counter-Strike&logoColor=FFFFFF&label=)
 
+- Genshin Impact
+- Honkai: Star Rail
 
 # Stats
 [![norman's GitHub stats](https://github-readme-stats.vercel.app/api?username=KNN-07&theme=dracula&show_icons=true)](https://github.com/anuraghazra/github-readme-stats)
