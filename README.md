@@ -37,7 +37,7 @@
 
 # Games?
 [![osu!](https://img.shields.io/static/v1?style=for-the-badge&message=osu%21&color=FF66AA&logo=osu%21&logoColor=FFFFFF&label=)](https://osu.ppy.sh/users/33043805)
-[![Valorant](https://img.shields.io/static/v1?style=for-the-badge&message=Valorant&color=FA4454&logo=Valorant&logoColor=FFFFFF&label=)](https://tracker.gg/valorant/profile/riot/weebshiet%23NOM/overview)
+[![Valorant](https://img.shields.io/static/v1?style=for-the-badge&message=Valorant&color=FA4454&logo=Valorant&logoColor=FFFFFF&label=)](https://tracker.gg/valorant/profile/riot/Muichirou%23KNY/overview)
 ![Counter-Strike](https://img.shields.io/static/v1?style=for-the-badge&message=Counter-Strike&color=000000&logo=Counter-Strike&logoColor=FFFFFF&label=)
 
 - Genshin Impact
