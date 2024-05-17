@@ -1,5 +1,6 @@
 # Hi there 👋
 # Overall Profile : https://normankr07.carrd.co/
+[![Discord Presence](https://lanyard.kyrie25.me/api/757131630811938926)](https://discord.com/users/757131630811938926)
 
 # Skill issue competitive programmer
 [![Codeforces Badge](http://mosesxu.ca/judge-badge/codeforces/normankr07)](https://codeforces.com/profile/normankr07)
