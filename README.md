@@ -44,7 +44,7 @@
 [![Valorant](https://img.shields.io/static/v1?style=for-the-badge&message=Valorant&color=FA4454&logo=Valorant&logoColor=FFFFFF&label=)](https://tracker.gg/valorant/profile/riot/DBW%20Tanjirou%23SLYR/overview)
 ![Counter-Strike](https://img.shields.io/static/v1?style=for-the-badge&message=Counter-Strike&color=000000&logo=Counter-Strike&logoColor=FFFFFF&label=)
 
-- ![Genshin Impact](https://enka.network/u/885918979/) 
+- [Genshin Impact](https://enka.network/u/885918979/)
 - Honkai: Star Rail
 
 ## Stats
