@@ -1,6 +1,6 @@
 # Hi there 👋
 ## GH Trophy
-[![trophy](https://github-profile-trophy.vercel.app/?username=KNN-07&theme=monokai)](https://github.com/ryo-ma/github-profile-trophy)
+[![trophy](https://github-profile-trophy.screw-hand.vercel.app/?username=KNN-07&theme=monokai)](https://github.com/GinWU05/github-profile-trophy)
 
 ## Overall Profile : https://normankr07.carrd.co/
 [![Discord Presence](https://lanyard.kyrie25.me/api/757131630811938926)](https://discord.com/users/757131630811938926)
