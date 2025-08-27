@@ -3,7 +3,7 @@
 ## About Me
 - CS Student @ **CSP (HSGS, HNUE) ’22–’25** → **VNU-UET ’25–?**
 - AI Researcher/Engineer (speedrun any%) @ [**OpenPrism-Labs**](https://github.com/OpenPrism-Labs)
-- Competitive Programmer (Codeforces, AtCoder, DMOJ)
+- Competitive Programmer (Codeforces, AtCoder, DMOJ) (Used to be, gave up)
 - Interested in AI, systems, design, and 3D art
 
 ---
