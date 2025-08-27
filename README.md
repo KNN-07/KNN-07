@@ -26,10 +26,10 @@
 
 ## Tech Stack
 - C, C++  
-- Python (Flask)  
+- Python 
 - Rust  
 - HTML, CSS, JavaScript  
-- SQLite  
+- SQL 
 
 ---
 
