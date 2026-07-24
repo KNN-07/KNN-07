@@ -1,7 +1,7 @@
 # Hi there 👋
 
 ## About Me
-- CS Student @ **CSP (HSGS, HNUE) ’22–’25** → **VNU-UET ’25–?**
+- CS Student @ **CSP (HSGS, HNUE) ’22–’25** → **VNU-UET ’25-’26 → NTUsg ’26-?**
 - AI Researcher/Engineer (speedrun any%) @ [**OpenPrism-Labs**](https://github.com/OpenPrism-Labs)
 - Competitive Programmer (Codeforces, AtCoder, DMOJ) (Used to be, gave up)
 - Interested in AI, systems, design, and 3D art
