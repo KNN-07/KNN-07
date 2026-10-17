@@ -14,7 +14,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/stats-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="assets/stats-light.svg">
-  <img alt="GitHub stats for KNN-07: 15 stars, 1,086 contributions in the last year (1,696 since 2019), 47 pull requests, current streak 4 days, longest 26 days. Top languages: TypeScript, Rust, CSS, HTML, JavaScript." src="assets/stats-dark.svg" width="100%">
+  <img alt="GitHub stats for KNN-07: 15 stars, 1,073 contributions in the last year (1,696 since 2019), 42 pull requests, current streak 4 days, longest 26 days. Top languages: TypeScript, Rust, CSS, HTML, JavaScript." src="assets/stats-dark.svg" width="100%">
 </picture>
 
 </div>
