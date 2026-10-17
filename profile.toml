@@ -1,0 +1,49 @@
+# Single source of truth for the profile README and the animated SVGs.
+# Edit this file, then run `python3 scripts/build_profile.py` (or let the
+# GitHub Action do it). README.md and assets/*.svg are generated — don't
+# hand-edit them, they get overwritten.
+#
+# Inline markup supported in `about`: **bold** and [text](url).
+
+username = "KNN-07"          # GitHub login the stats are pulled for
+handle = "normankr07"        # shown in the terminal prompt
+name = "Nguyen Khac Trung Kien"
+greeting = "Hi there 👋"
+
+about = [
+  "CS Student @ **CSP (HSGS, HNUE) ’22–’25** → **VNU-UET ’25-’26 → NTUsg ’26-?**",
+  "AI Researcher/Engineer (speedrun any%) @ [**OpenPrism-Labs**](https://github.com/OpenPrism-Labs)",
+  "Competitive Programmer (Codeforces, AtCoder, DMOJ) (Used to be, gave up)",
+  "Interested in AI, systems, design, and 3D art",
+]
+
+[[links]]
+label = "Profile"
+text = "normankr07.carrd.co"
+url = "https://normankr07.carrd.co/"
+
+[[links]]
+label = "Discord"
+text = "@normankr07"
+url = "https://discord.com/users/757131630811938926"
+
+[[links]]
+label = "Codeforces"
+text = "TheMiraiTraveller0711"
+url = "https://codeforces.com/profile/TheMiraiTraveller0711"
+
+[[links]]
+label = "AtCoder"
+text = "normankr07"
+url = "https://atcoder.jp/users/normankr07"
+
+[[links]]
+label = "DMOJ"
+text = "normankr07"
+url = "https://www.dmoj.ca/user/normankr07"
+
+[stats]
+# Languages to leave out of the "Top languages" bar (notebooks/markup
+# tend to drown out real code by sheer byte count).
+exclude_languages = ["Jupyter Notebook"]
+top_languages = 8
