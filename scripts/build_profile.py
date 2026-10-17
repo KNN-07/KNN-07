@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Build the profile README and its animated SVGs.
+"""Build the profile README and its animated isometric SVG card.
 
 Reads profile.toml for the hand-written content, pulls live numbers from the
 GitHub GraphQL API, and writes:
 
-    assets/terminal-{dark,light}.svg   animated "whoami" terminal card
-    assets/stats-{dark,light}.svg      animated stats / languages / heatmap card
-    README.md                          embeds the SVGs + plain markdown fallback
+    assets/profile-{dark,light}.svg   intro + stats + isometric contribution
+                                       skyline (bars rise on load) + languages
+    README.md                          embeds the card + plain markdown fallback
 
 Standard library only (Python 3.11+). Needs GITHUB_TOKEN in the environment.
 """
@@ -28,21 +28,19 @@ ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
 API_URL = "https://api.github.com/graphql"
 
-MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'DejaVu Sans Mono', monospace"
 SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif"
 
+# `ramp` colours the skyline by GitHub's contribution level (none → 4th quartile).
 PALETTES = {
     "dark": {
-        "bg": "#0d1117", "panel": "#161b22", "border": "#30363d",
-        "text": "#e6edf3", "muted": "#8b949e", "accent": "#58a6ff",
-        "green": "#3fb950", "purple": "#d2a8ff", "orange": "#f0883e", "pink": "#ff7b72",
-        "heat": ["#161b22", "#0e4429", "#006d32", "#26a641", "#39d353"],
+        "bg": "#0b0e14", "glow": "#16304a", "border": "#262c36",
+        "text": "#e6edf3", "muted": "#8b949e", "accent": "#67e8f9", "accent2": "#c4b5fd",
+        "ramp": ["#1c232e", "#155e75", "#0e7490", "#06b6d4", "#a5f3fc"],
     },
     "light": {
-        "bg": "#ffffff", "panel": "#f6f8fa", "border": "#d0d7de",
-        "text": "#1f2328", "muted": "#59636e", "accent": "#0969da",
-        "green": "#1a7f37", "purple": "#8250df", "orange": "#bc4c00", "pink": "#cf222e",
-        "heat": ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"],
+        "bg": "#ffffff", "glow": "#dff3f8", "border": "#d0d7de",
+        "text": "#1f2328", "muted": "#59636e", "accent": "#0e7490", "accent2": "#6d28d9",
+        "ramp": ["#e3e8ee", "#a5f3fc", "#22d3ee", "#0891b2", "#155e75"],
     },
 }
 
@@ -199,6 +197,8 @@ def top_languages(repos: list[dict], opts: dict) -> list[dict]:
     return top
 
 
+
+
 # --------------------------------------------------------------------------- helpers
 
 INLINE = re.compile(r"\[(\*\*)?(.+?)(?:\*\*)?\]\((.+?)\)|\*\*(.+?)\*\*")
@@ -217,6 +217,10 @@ def inline_segments(text: str) -> list[tuple[str, str]]:
     return out
 
 
+def plain(text: str) -> str:
+    return "".join(t for _, t in inline_segments(text))
+
+
 def esc(text) -> str:
     return html.escape(str(text), quote=True)
 
@@ -225,276 +229,233 @@ def fmt(n: int) -> str:
     return f"{n / 1000:.1f}k" if n >= 100_000 else f"{n:,}"
 
 
-def svg_doc(width: int, height: int, title: str, css: str, body: str) -> str:
-    return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="{width}" height="{height}" '
-        f'viewBox="0 0 {width} {height}" role="img" aria-label="{esc(title)}">\n'
-        f"<title>{esc(title)}</title>\n<style>{css}\n"
-        "@media (prefers-reduced-motion: reduce) { * { animation: none !important; } "
-        ".a, .tile, .wk { opacity: 1 !important; } .ch { fill-opacity: 1 !important; } "
-        ".seg { transform: none !important; } }\n"
-        f"</style>\n{body}\n</svg>\n"
+def shade(color: str, k: float) -> str:
+    r, g, b = (int(color[i:i + 2], 16) for i in (1, 3, 5))
+    return "#{:02x}{:02x}{:02x}".format(*(min(255, round(c * k)) for c in (r, g, b)))
+
+
+def pts(points) -> str:
+    return " ".join(f"{x:.1f},{y:.1f}" for x, y in points)
+
+
+# --------------------------------------------------------------------------- card
+
+def render_card(cfg: dict, s: dict, p: dict) -> str:
+    W, pad = 850, 34
+    front: list[str] = []  # text layers, drawn over the skyline
+
+    # Intro, top-left.
+    front.append(
+        f'<text class="a over" x="{pad}" y="44" fill="{p["muted"]}" style="animation-delay:100ms">'
+        f'@{esc(cfg["username"])}  ·  {esc(cfg["handle"])}</text>'
+        f'<text class="a name" x="{pad - 1}" y="80" fill="{p["text"]}" style="animation-delay:200ms">'
+        f'{esc(cfg["name"].upper())}</text>'
+        f'<text class="a tag" x="{pad}" y="106" fill="{p["accent"]}" style="animation-delay:320ms">'
+        f'{esc(cfg["tagline"])}</text>'
     )
-
-
-# --------------------------------------------------------------------------- terminal card
-
-def render_terminal(cfg: dict, p: dict) -> str:
-    W, pad, top, lh, fs = 850, 28, 64, 24, 14
-    char_w = fs * 0.6
-    type_ms, line_ms, pause_ms = 42, 90, 280
-    prompt = f"{cfg['handle']}@github:~$"
-    cmd_x = pad + (len(prompt) + 1) * char_w
-
-    rows: list[str] = []
-    t = 400  # ms since load
-    y = top
-
-    def command(cmd: str) -> None:
-        nonlocal t, y
-        chars = "".join(
-            f'<tspan class="ch" style="animation-delay:{t + i * type_ms}ms">{esc(c)}</tspan>'
-            for i, c in enumerate(cmd)
+    style = {"plain": "", "bold": f' fill="{p["text"]}" font-weight="600"', "link": f' fill="{p["accent2"]}" font-weight="600"'}
+    y = 138
+    for i, line in enumerate(cfg["about"]):
+        runs = "".join(f"<tspan{style[k]}>{esc(t)}</tspan>" for k, t in inline_segments(line))
+        front.append(
+            f'<g class="a" style="animation-delay:{440 + i * 90}ms">'
+            f'<path d="M{pad} {y - 4} l4 -2.5 l4 2.5 l-4 2.5 Z" fill="{p["accent"]}"/>'
+            f'<text class="about" x="{pad + 16}" y="{y}" fill="{p["muted"]}">{runs}</text></g>'
         )
-        rows.append(
-            f'<text class="a" x="{pad}" y="{y}" style="animation-delay:{t - 150}ms">'
-            f'<tspan fill="{p["green"]}">{esc(prompt)}</tspan></text>'
-            f'<text x="{cmd_x:.1f}" y="{y}" fill="{p["text"]}">{chars}</text>'
-        )
-        t += len(cmd) * type_ms + pause_ms
-        y += lh
+        y += 22
+    intro_bottom = y - 10
 
-    def output(inner: str, x: float = pad + 16) -> None:
-        nonlocal t, y
-        rows.append(f'<text class="a" x="{x:.1f}" y="{y}" style="animation-delay:{t}ms">{inner}</text>')
-        t += line_ms
-        y += lh
-
-    def runs(text: str) -> str:
-        style = {"plain": f'fill="{p["text"]}"', "bold": f'fill="{p["accent"]}" font-weight="700"',
-                 "link": f'fill="{p["purple"]}" font-weight="700" text-decoration="underline"'}
-        return "".join(f"<tspan {style[k]}>{esc(s)}</tspan>" for k, s in inline_segments(text))
-
-    command("whoami")
-    output(f'<tspan fill="{p["text"]}">{esc(cfg["greeting"])}  I\'m </tspan>'
-           f'<tspan fill="{p["accent"]}" font-weight="700">{esc(cfg["name"])}</tspan>'
-           f'<tspan fill="{p["muted"]}"> (@{esc(cfg["handle"])})</tspan>')
-    t += pause_ms
-    y += 8
-
-    command("cat about.md")
-    for line in cfg["about"]:
-        output(f'<tspan fill="{p["orange"]}">• </tspan>{runs(line)}')
-    t += pause_ms
-    y += 8
-
-    command("ls ~/links")
-    links = cfg.get("links", [])
-    half = math.ceil(len(links) / 2)
-    label_w = max((len(link["label"]) for link in links), default=0) + 2
-    for i in range(half):
-        cells = []
-        for col, link in enumerate(links[i::half][:2]):
-            x = pad + 16 + col * 400
-            cells.append(
-                f'<tspan x="{x}" fill="{p["accent"]}">{esc(link["label"].lower().ljust(label_w))}</tspan>'
-                f'<tspan fill="{p["muted"]}">{esc(link["text"])}</tspan>'
-            )
-        output("".join(cells))
-    t += pause_ms
-    y += 8
-
-    # Idle prompt with a blinking block cursor.
-    rows.append(
-        f'<text class="a" x="{pad}" y="{y}" style="animation-delay:{t}ms" fill="{p["green"]}">{esc(prompt)}</text>'
-        f'<rect class="cursor" x="{cmd_x:.1f}" y="{y - fs + 1}" width="{char_w:.1f}" height="{fs + 3}" '
-        f'fill="{p["text"]}" style="animation-delay:{t}ms"/>'
-    )
-
-    H = y + pad
-    css = (
-        f"text {{ font: {fs}px {MONO}; white-space: pre; }}\n"
-        ".title { font-size: 12px; }\n"
-        ".a { opacity: 0; animation: fadeup .4s ease-out forwards; }\n"
-        ".ch { fill-opacity: 0; animation: type 10ms linear forwards; }\n"
-        ".cursor { opacity: 0; animation: blink 1.1s step-end infinite; }\n"
-        "@keyframes fadeup { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }\n"
-        "@keyframes type { to { fill-opacity: 1; } }\n"
-        "@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }"
-    )
-    body = (
-        f'<rect x=".5" y=".5" width="{W - 1}" height="{H - 1}" rx="12" fill="{p["bg"]}" stroke="{p["border"]}"/>\n'
-        f'<path d="M.5 36.5 V12.5 a12 12 0 0 1 12 -12 H{W - 12.5} a12 12 0 0 1 12 12 V36.5 Z" fill="{p["panel"]}"/>\n'
-        f'<line x1=".5" y1="36.5" x2="{W - .5}" y2="36.5" stroke="{p["border"]}"/>\n'
-        '<circle cx="22" cy="18.5" r="6" fill="#ff5f57"/><circle cx="42" cy="18.5" r="6" fill="#febc2e"/>'
-        '<circle cx="62" cy="18.5" r="6" fill="#28c840"/>\n'
-        f'<text class="title" x="{W / 2}" y="23" text-anchor="middle" fill="{p["muted"]}">'
-        f'{esc(cfg["handle"])}@github: ~ — zsh</text>\n'
-        + "\n".join(rows)
-    )
-    return svg_doc(W, H, f"{cfg['greeting']} I'm {cfg['name']}", css, body)
-
-
-# --------------------------------------------------------------------------- stats card
-
-def render_stats(cfg: dict, s: dict, p: dict) -> str:
-    W, pad = 850, 30
-    inner = W - 2 * pad
-    parts: list[str] = []
-
-    parts.append(
-        f'<text x="{pad}" y="40" class="h1" fill="{p["text"]}">GitHub Stats</text>'
-        f'<text x="{W - pad}" y="40" class="small" text-anchor="end" fill="{p["muted"]}">'
-        f'@{esc(cfg["username"])} · updated {s["updated"]}</text>'
-    )
-
-    # Tiles: 5 x 2.
-    tiles = [
-        ("Stars earned", fmt(s["stars"]), p["orange"]),
-        ("Total contributions", fmt(s["contrib_all"]), p["green"]),
-        ("Commits (past year)", fmt(s["commits_year"]), p["accent"]),
-        ("Pull requests", fmt(s["prs"]), p["purple"]),
-        ("Issues", fmt(s["issues"]), p["pink"]),
-        ("Contributed to", fmt(s["contributed_to"]), p["accent"]),
-        ("Current streak", f'{fmt(s["streak_current"])} days', p["orange"]),
-        ("Longest streak", f'{fmt(s["streak_longest"])} days', p["green"]),
-        ("Public repos", fmt(s["repos"]), p["purple"]),
-        ("Followers", fmt(s["followers"]), p["pink"]),
+    # Stats, top-right: 2 columns x 4 rows.
+    stats = [
+        ("Stars", s["stars"]), ("Followers", s["followers"]),
+        ("Public repos", s["repos"]), ("Contributed to", s["contributed_to"]),
+        ("Pull requests", s["prs"]), ("Issues", s["issues"]),
+        ("Commits · 12 mo", s["commits_year"]), (f"Contribs · since {s['since']}", s["contrib_all"]),
     ]
-    cols, gap, th, ty = 5, 12, 66, 62
-    tw = (inner - (cols - 1) * gap) / cols
-    for i, (label, value, color) in enumerate(tiles):
-        x = pad + (i % cols) * (tw + gap)
-        y = ty + (i // cols) * (th + gap)
-        parts.append(
-            f'<g class="tile" style="animation-delay:{150 + i * 70}ms">'
-            f'<rect x="{x:.1f}" y="{y}" width="{tw:.1f}" height="{th}" rx="8" fill="{p["panel"]}" stroke="{p["border"]}"/>'
-            f'<rect x="{x:.1f}" y="{y + 14}" width="3" height="{th - 28}" rx="1.5" fill="{color}"/>'
-            f'<text x="{x + 16:.1f}" y="{y + 25}" class="label" fill="{p["muted"]}">{esc(label)}</text>'
-            f'<text x="{x + 16:.1f}" y="{y + 51}" class="value" fill="{p["text"]}">{esc(value)}</text></g>'
+    sx, sy, cw, rh = 612, 40, 104, 46
+    for i, (label, value) in enumerate(stats):
+        x, y0 = sx + (i % 2) * cw, sy + (i // 2) * rh
+        front.append(
+            f'<g class="a" style="animation-delay:{300 + i * 70}ms">'
+            f'<text class="num" x="{x}" y="{y0 + 18}" fill="{p["text"]}">{fmt(value)}</text>'
+            f'<text class="lbl" x="{x}" y="{y0 + 34}" fill="{p["muted"]}">{esc(label)}</text></g>'
         )
-    y = ty + 2 * th + gap + 38
+    stats_bottom = sy + 4 * rh - 8
 
-    # Top languages: stacked bar + legend.
+    # Caption, left, between intro and the low end of the skyline.
+    cap_y = intro_bottom + 40
+    front.append(
+        f'<g class="a" style="animation-delay:900ms">'
+        f'<text class="big" x="{pad}" y="{cap_y}" fill="{p["text"]}">{fmt(s["contrib_year"])}'
+        f'<tspan class="lbl" fill="{p["muted"]}" dx="8">contributions in the last year</tspan></text>'
+        f'<text class="lbl" x="{pad}" y="{cap_y + 20}" fill="{p["muted"]}">streak '
+        f'<tspan fill="{p["text"]}" font-weight="600">{s["streak_current"]} d</tspan>  ·  best '
+        f'<tspan fill="{p["text"]}" font-weight="600">{s["streak_longest"]} d</tspan></text></g>'
+    )
+    keep_clear = [(pad, 590, intro_bottom), (pad, pad + 330, cap_y + 26), (590, W, stats_bottom)]
+
+    # Isometric skyline. Weeks run along u (rising to the right), weekdays
+    # along v (towards the viewer); bar height is up the screen.
+    weeks = s["calendar"]
+    n = len(weeks)
+    vx, vy = 7.5, 6.0
+    ux = (W - 2 * pad - 7 * vx) / n
+    uy = ux * 0.15
+    hmax, inset, plate = 92, 0.12, 7
+    peak = max((d["contributionCount"] for wk in weeks for d in wk["contributionDays"]), default=0) or 1
+
+    def bar_h(count: int) -> float:
+        return 0 if not count else 4 + (hmax - 4) * math.sqrt(count / peak)
+
+    cells = [(wi, day["weekday"], day["contributionCount"], HEAT_LEVEL.get(day["contributionLevel"], 0))
+             for wi, wk in enumerate(weeks) for day in wk["contributionDays"]]
+
+    # Drop the grid as high as the text above it allows.
+    oy = 0.0
+    for w, d, count, _ in cells:
+        x0, x1 = pad + w * ux + d * vx, pad + (w + 1) * ux + (d + 1) * vx
+        for bx0, bx1, bottom in keep_clear:
+            if x1 > bx0 and x0 < bx1:
+                oy = max(oy, bottom + 14 + bar_h(count) + uy * (w + 1) - vy * d)
+
+    def B(w: float, d: float, h: float = 0.0) -> tuple[float, float]:
+        return pad + w * ux + d * vx, oy - w * uy + d * vy - h
+
+    ramp = p["ramp"]
+    sky: list[str] = []
+
+    # Base plate the bars stand on.
+    g0, g1 = -0.4, 0.4
+    top = [B(g0, g0), B(n + g1, g0), B(n + g1, 7 + g1), B(g0, 7 + g1)]
+    sky.append(
+        f'<polygon points="{pts(top)}" fill="{shade(ramp[0], 0.82)}"/>'
+        f'<polygon points="{pts([B(g0, g0), B(g0, 7 + g1), B(g0, 7 + g1, -plate), B(g0, g0, -plate)])}" fill="{shade(ramp[0], 0.74)}"/>'
+        f'<polygon points="{pts([B(g0, 7 + g1), B(n + g1, 7 + g1), B(n + g1, 7 + g1, -plate), B(g0, 7 + g1, -plate)])}" fill="{shade(ramp[0], 0.64)}"/>'
+    )
+    tiles = "".join(
+        f'<polygon points="{pts([B(w + inset, d + inset), B(w + 1 - inset, d + inset), B(w + 1 - inset, d + 1 - inset), B(w + inset, d + 1 - inset)])}"/>'
+        for w, d, _, _ in cells
+    )
+    sky.append(f'<g fill="{ramp[0]}">{tiles}</g>')
+
+    # Bars, painted back to front. Each face animates from flat to full height.
+    grow = 650
+    for w, d, count, level in sorted(cells, key=lambda c: (c[1], -c[0])):
+        h = bar_h(count)
+        if not h:
+            continue
+        a, b = w + inset, w + 1 - inset
+        c, e = d + inset, d + 1 - inset
+        color = ramp[max(level, 1)]
+        delay = 700 + w * 26 + d * 22
+        faces = [
+            ([B(a, c), B(b, c), B(b, e), B(a, e)], [B(a, c, h), B(b, c, h), B(b, e, h), B(a, e, h)], color),
+            ([B(a, c), B(a, e), B(a, e), B(a, c)], [B(a, c), B(a, e), B(a, e, h), B(a, c, h)], shade(color, 0.72)),
+            ([B(a, e), B(b, e), B(b, e), B(a, e)], [B(a, e), B(b, e), B(b, e, h), B(a, e, h)], shade(color, 0.55)),
+        ]
+        for flat, full, fill in faces:
+            sky.append(
+                f'<polygon points="{pts(full)}" fill="{fill}"><animate attributeName="points" '
+                f'values="{pts(flat)};{pts(flat)};{pts(full)}" keyTimes="0;{delay / (delay + grow):.3f};1" '
+                f'dur="{(delay + grow) / 1000:.2f}s" calcMode="spline" keySplines="0 0 1 1;.2 .8 .3 1" fill="freeze"/></polygon>'
+            )
+
+    # Date range under the front edge.
+    first = dt.date.fromisoformat(weeks[0]["contributionDays"][0]["date"])
+    last = dt.date.fromisoformat(weeks[-1]["contributionDays"][-1]["date"])
+    lx, ly = B(g0, 7 + g1, -plate)
+    rx, ry = B(n + g1, 7 + g1, -plate)
+    front.append(
+        f'<text class="a tiny" x="{lx:.1f}" y="{ly + 16:.1f}" fill="{p["muted"]}" style="animation-delay:1200ms">{first:%b %Y}</text>'
+        f'<text class="a tiny" x="{rx:.1f}" y="{ry + 16:.1f}" text-anchor="end" fill="{p["muted"]}" style="animation-delay:2400ms">{last:%b %Y}</text>'
+    )
+
+    # Top languages, bottom-right, tucked under the skyline's front edge.
     langs = s["languages"]
-    parts.append(f'<text x="{pad}" y="{y}" class="h2" fill="{p["text"]}">Top languages</text>')
-    y += 14
-    parts.append(f'<clipPath id="bar"><rect x="{pad}" y="{y}" width="{inner}" height="10" rx="5"/></clipPath>'
-                 f'<rect x="{pad}" y="{y}" width="{inner}" height="10" rx="5" fill="{p["panel"]}"/>')
-    bx, segs = float(pad), []
+    lx0 = 404
+    lw = W - pad - lx0
+    edge_y = B(0, 7 + g1, -plate)[1] - (lx0 - B(0, 7 + g1)[0]) * uy / ux
+    ly0 = max(edge_y + 34, ry + 52)
+    front.append(f'<text class="a h2" x="{lx0}" y="{ly0:.1f}" fill="{p["text"]}" style="animation-delay:1600ms">Top languages</text>')
+    by = ly0 + 12
+    segs, bx = [], float(lx0)
     for i, lang in enumerate(langs):
-        w = inner * lang["pct"] / 100
-        segs.append(f'<rect class="seg" x="{bx:.2f}" y="{y}" width="{w + .5:.2f}" height="10" fill="{lang["color"]}" '
-                    f'style="animation-delay:{900 + i * 110}ms"/>')
-        bx += w
-    parts.append(f'<g clip-path="url(#bar)">{"".join(segs)}</g>')
-    y += 34
-    lcols = 4
+        sw = lw * lang["pct"] / 100
+        segs.append(f'<rect class="seg" x="{bx:.2f}" y="{by:.1f}" width="{sw + .5:.2f}" height="8" fill="{lang["color"]}" '
+                    f'style="animation-delay:{1700 + i * 100}ms"/>')
+        bx += sw
+    front.append(
+        f'<clipPath id="bar"><rect x="{lx0}" y="{by:.1f}" width="{lw}" height="8" rx="4"/></clipPath>'
+        f'<rect x="{lx0}" y="{by:.1f}" width="{lw}" height="8" rx="4" fill="{ramp[0]}"/>'
+        f'<g clip-path="url(#bar)">{"".join(segs)}</g>'
+    )
+    cols = 3
     for i, lang in enumerate(langs):
-        x = pad + (i % lcols) * (inner / lcols)
-        ly = y + (i // lcols) * 24
-        parts.append(
-            f'<g class="tile" style="animation-delay:{1000 + i * 70}ms">'
-            f'<circle cx="{x + 5:.1f}" cy="{ly - 4}" r="5" fill="{lang["color"]}"/>'
-            f'<text x="{x + 16:.1f}" y="{ly}" class="label" fill="{p["text"]}">{esc(lang["name"])}'
+        x = lx0 + (i % cols) * (lw / cols)
+        y0 = by + 30 + (i // cols) * 20
+        front.append(
+            f'<g class="a" style="animation-delay:{1800 + i * 70}ms">'
+            f'<circle cx="{x + 4:.1f}" cy="{y0 - 4:.1f}" r="4" fill="{lang["color"]}"/>'
+            f'<text class="lbl" x="{x + 13:.1f}" y="{y0:.1f}" fill="{p["text"]}">{esc(lang["name"])}'
             f'<tspan fill="{p["muted"]}"> {lang["pct"]:.1f}%</tspan></text></g>'
         )
-    y += math.ceil(len(langs) / lcols) * 24 + 30
+    H = round(max(by + 30 + (math.ceil(len(langs) / cols) - 1) * 20, ly + 16) + pad - 6)
 
-    # Contribution heatmap (rolling 12 months, same as github.com).
-    weeks = s["calendar"]
-    parts.append(f'<text x="{pad}" y="{y}" class="h2" fill="{p["text"]}">'
-                 f'{fmt(s["contrib_year"])} contributions in the last year</text>')
-    y += 26
-    pitch = inner / len(weeks)
-    cell = pitch - 3
-    starts = [wi for wi, week in enumerate(weeks)
-              if not wi or week["contributionDays"][0]["date"][5:7] != weeks[wi - 1]["contributionDays"][0]["date"][5:7]]
-    for i, wi in enumerate(starts):
-        if i + 1 < len(starts) and starts[i + 1] - wi < 3:
-            continue  # partial month squeezed against the next label
-        month = dt.date.fromisoformat(weeks[wi]["contributionDays"][0]["date"]).strftime("%b")
-        parts.append(f'<text x="{pad + wi * pitch:.1f}" y="{y}" class="tiny" fill="{p["muted"]}">{month}</text>')
-    y += 8
-    today = s["updated"]
-    heat = p["heat"]
-    for wi, week in enumerate(weeks):
-        cells = []
-        for day in week["contributionDays"]:
-            lvl = HEAT_LEVEL.get(day["contributionLevel"], 0)
-            cls = ' class="today"' if day["date"] == today else ""
-            cells.append(
-                f'<rect{cls} x="{pad + wi * pitch:.1f}" y="{y + day["weekday"] * pitch:.1f}" width="{cell:.1f}" '
-                f'height="{cell:.1f}" rx="2.5" fill="{heat[lvl]}">'
-                f'<title>{day["contributionCount"]} on {day["date"]}</title></rect>'
-            )
-        parts.append(f'<g class="wk" style="animation-delay:{1500 + wi * 22}ms">{"".join(cells)}</g>')
-    y += 7 * pitch + 18
-
-    # Legend.
-    lx = W - pad - 5 * 15 - 34
-    parts.append(f'<text x="{lx - 8}" y="{y + 9}" class="tiny" text-anchor="end" fill="{p["muted"]}">Less</text>')
-    for i, color in enumerate(heat):
-        parts.append(f'<rect x="{lx + i * 15}" y="{y}" width="11" height="11" rx="2.5" fill="{color}"/>')
-    parts.append(f'<text x="{lx + 5 * 15 + 4}" y="{y + 9}" class="tiny" fill="{p["muted"]}">More</text>')
-    H = int(y + 11 + pad)
-
+    cx, cy = B(n / 2, 3.5)
     css = (
         f"text {{ font-family: {SANS}; }}\n"
-        ".h1 { font-size: 20px; font-weight: 700; } .h2 { font-size: 14px; font-weight: 600; }\n"
-        ".label { font-size: 12.5px; } .value { font-size: 22px; font-weight: 700; } "
-        ".small { font-size: 12.5px; } .tiny { font-size: 11px; }\n"
-        ".tile, .wk { opacity: 0; animation: fadeup .5s ease-out forwards; }\n"
+        ".over { font-size: 12px; letter-spacing: .08em; } "
+        ".name { font-size: 30px; font-weight: 800; letter-spacing: .04em; } "
+        ".tag { font-size: 14px; font-weight: 600; letter-spacing: .02em; }\n"
+        ".about { font-size: 12.5px; } .num { font-size: 20px; font-weight: 700; } "
+        ".big { font-size: 22px; font-weight: 700; } .lbl { font-size: 11.5px; font-weight: 400; } "
+        ".h2 { font-size: 12.5px; font-weight: 600; } .tiny { font-size: 11px; }\n"
+        ".a { opacity: 0; animation: fadeup .5s ease-out forwards; }\n"
         ".seg { transform-box: fill-box; transform-origin: left center; transform: scaleX(0); "
         "animation: grow .7s cubic-bezier(.2,.8,.2,1) forwards; }\n"
-        ".today { animation: pulse 2.4s ease-in-out 3s infinite; }\n"
         "@keyframes fadeup { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }\n"
         "@keyframes grow { to { transform: scaleX(1); } }\n"
-        "@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }"
+        "@media (prefers-reduced-motion: reduce) { .a, .seg { animation: none; opacity: 1; transform: none; } }"
     )
-    body = f'<rect x=".5" y=".5" width="{W - 1}" height="{H - 1}" rx="12" fill="{p["bg"]}" stroke="{p["border"]}"/>\n' + "\n".join(parts)
-    return svg_doc(W, H, stats_alt(cfg, s), css, body)
+    title = f"{cfg['name']} — {cfg['tagline']}"
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="{W}" height="{H}" '
+        f'viewBox="0 0 {W} {H}" role="img" aria-label="{esc(card_alt(cfg, s))}">\n'
+        f"<title>{esc(title)}</title>\n<style>{css}</style>\n"
+        f'<defs><radialGradient id="glow"><stop offset="0" stop-color="{p["glow"]}"/>'
+        f'<stop offset="1" stop-color="{p["glow"]}" stop-opacity="0"/></radialGradient></defs>\n'
+        f'<rect x=".5" y=".5" width="{W - 1}" height="{H - 1}" rx="14" fill="{p["bg"]}" stroke="{p["border"]}"/>\n'
+        f'<ellipse cx="{cx:.0f}" cy="{cy:.0f}" rx="{W * 0.45:.0f}" ry="150" fill="url(#glow)"/>\n'
+        + "\n".join(sky) + "\n" + "\n".join(front) + "\n</svg>\n"
+    )
 
 
-def stats_alt(cfg: dict, s: dict) -> str:
+def card_alt(cfg: dict, s: dict) -> str:
+    about = " ".join(plain(line) + "." for line in cfg["about"])
     langs = ", ".join(lang["name"] for lang in s["languages"][:5])
     return (
-        f"GitHub stats for {cfg['username']}: {fmt(s['stars'])} stars, {fmt(s['contrib_year'])} contributions "
-        f"in the last year ({fmt(s['contrib_all'])} since {s['since']}), {fmt(s['prs'])} pull requests, "
-        f"current streak {s['streak_current']} days, longest {s['streak_longest']} days. Top languages: {langs}."
+        f"{cfg['name']} (@{cfg['handle']}) — {cfg['tagline']}. {about} "
+        f"GitHub: {fmt(s['contrib_year'])} contributions in the last year ({fmt(s['contrib_all'])} since {s['since']}), "
+        f"{fmt(s['stars'])} stars, {fmt(s['prs'])} pull requests, current streak {s['streak_current']} days, "
+        f"longest {s['streak_longest']} days. Top languages: {langs}."
     )
 
 
 # --------------------------------------------------------------------------- README
 
-def picture(name: str, alt: str) -> str:
-    return (
-        "<picture>\n"
-        f'  <source media="(prefers-color-scheme: dark)" srcset="assets/{name}-dark.svg">\n'
-        f'  <source media="(prefers-color-scheme: light)" srcset="assets/{name}-light.svg">\n'
-        f'  <img alt="{esc(alt)}" src="assets/{name}-dark.svg" width="100%">\n'
-        "</picture>"
-    )
-
-
 def render_readme(cfg: dict, s: dict) -> str:
     about = "\n".join(f"- {line}" for line in cfg["about"])
     links = "\n".join(f"- {link['label']}: [{link['text']}]({link['url']})" for link in cfg.get("links", []))
-    terminal_alt = f"{cfg['greeting']} I'm {cfg['name']} (@{cfg['handle']}). " + " ".join(
-        "".join(text for _, text in inline_segments(line)) + "." for line in cfg["about"]
-    )
     return f"""<!--
   Generated by scripts/build_profile.py from profile.toml — edit those, not this file.
   Refreshed weekly by .github/workflows/update-profile.yml.
 -->
 
-<div align="center">
-
-{picture("terminal", terminal_alt)}
-
-{picture("stats", stats_alt(cfg, s))}
-
-</div>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/profile-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/profile-light.svg">
+  <img alt="{esc(card_alt(cfg, s))}" src="assets/profile-dark.svg" width="100%">
+</picture>
 
 <details>
 <summary><b>About Me</b> (plain text)</summary>
@@ -522,8 +483,7 @@ def main() -> int:
 
     ASSETS.mkdir(exist_ok=True)
     for theme, palette in PALETTES.items():
-        (ASSETS / f"terminal-{theme}.svg").write_text(render_terminal(cfg, palette), encoding="utf-8")
-        (ASSETS / f"stats-{theme}.svg").write_text(render_stats(cfg, stats, palette), encoding="utf-8")
+        (ASSETS / f"profile-{theme}.svg").write_text(render_card(cfg, stats, palette), encoding="utf-8")
     (ROOT / "README.md").write_text(render_readme(cfg, stats), encoding="utf-8")
 
     summary = {k: v for k, v in stats.items() if k not in ("calendar", "languages")}

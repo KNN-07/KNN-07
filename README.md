@@ -3,21 +3,11 @@
   Refreshed weekly by .github/workflows/update-profile.yml.
 -->
 
-<div align="center">
-
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/terminal-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="assets/terminal-light.svg">
-  <img alt="Hi there 👋 I&#x27;m Nguyen Khac Trung Kien (@normankr07). CS Student @ CSP (HSGS, HNUE) ’22–’25 → VNU-UET ’25-’26 → NTUsg ’26-?. AI Researcher/Engineer (speedrun any%) @ OpenPrism-Labs. Competitive Programmer (Codeforces, AtCoder, DMOJ) (Used to be, gave up). Interested in AI, systems, design, and 3D art." src="assets/terminal-dark.svg" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/profile-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/profile-light.svg">
+  <img alt="Nguyen Khac Trung Kien (@normankr07) — AI · systems · design · 3D art. CS Student @ CSP (HSGS, HNUE) ’22–’25 → VNU-UET ’25-’26 → NTUsg ’26-?. AI Researcher/Engineer (speedrun any%) @ OpenPrism-Labs. Competitive Programmer (Codeforces, AtCoder, DMOJ) (Used to be, gave up). Interested in AI, systems, design, and 3D art. GitHub: 1,087 contributions in the last year (1,696 since 2019), 15 stars, 47 pull requests, current streak 4 days, longest 26 days. Top languages: TypeScript, Rust, CSS, HTML, JavaScript." src="assets/profile-dark.svg" width="100%">
 </picture>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/stats-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="assets/stats-light.svg">
-  <img alt="GitHub stats for KNN-07: 15 stars, 1,073 contributions in the last year (1,696 since 2019), 42 pull requests, current streak 4 days, longest 26 days. Top languages: TypeScript, Rust, CSS, HTML, JavaScript." src="assets/stats-dark.svg" width="100%">
-</picture>
-
-</div>
 
 <details>
 <summary><b>About Me</b> (plain text)</summary>

@@ -6,9 +6,9 @@
 # Inline markup supported in `about`: **bold** and [text](url).
 
 username = "KNN-07"          # GitHub login the stats are pulled for
-handle = "normankr07"        # shown in the terminal prompt
+handle = "normankr07"        # shown next to your username
 name = "Nguyen Khac Trung Kien"
-greeting = "Hi there 👋"
+tagline = "AI · systems · design · 3D art"
 
 about = [
   "CS Student @ **CSP (HSGS, HNUE) ’22–’25** → **VNU-UET ’25-’26 → NTUsg ’26-?**",
