@@ -6,7 +6,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/profile-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="assets/profile-light.svg">
-  <img alt="Nguyen Khac Trung Kien (@normankr07) — AI · systems · design · 3D art. CS Student @ CSP (HSGS, HNUE) ’22–’25 → VNU-UET ’25-’26 → NTUsg ’26-?. AI Researcher/Engineer (speedrun any%) @ OpenPrism-Labs. Competitive Programmer (Codeforces, AtCoder, DMOJ) (Used to be, gave up). Interested in AI, systems, design, and 3D art. GitHub: 1,073 contributions in the last year (1,696 since 2019), 15 stars, 42 pull requests, current streak 4 days, longest 26 days. Top languages: TypeScript, Rust, CSS, HTML, JavaScript." src="assets/profile-dark.svg" width="100%">
+  <img alt="Nguyen Khac Trung Kien (@normankr07) — AI · systems · design · 3D art. CS Student @ CSP (HSGS, HNUE) ’22–’25 → VNU-UET ’25-’26 → NTUsg ’26-?. AI Researcher/Engineer (speedrun any%) @ OpenPrism-Labs. Competitive Programmer (Codeforces, AtCoder, DMOJ) (Used to be, gave up). Interested in AI, systems, design, and 3D art. GitHub: 1,091 contributions in the last year (1,715 since 2019), 15 stars, 42 pull requests, current streak 5 days, longest 26 days. Top languages: TypeScript, Rust, CSS, HTML, JavaScript." src="assets/profile-dark.svg" width="100%">
 </picture>
 
 <details>
@@ -26,4 +26,4 @@
 - AtCoder: [normankr07](https://atcoder.jp/users/normankr07)
 - DMOJ: [normankr07](https://www.dmoj.ca/user/normankr07)
 
-<sub>Stats last refreshed 2026-10-17 · rebuilt weekly by GitHub Actions</sub>
+<sub>Stats last refreshed 2026-10-19 · rebuilt weekly by GitHub Actions</sub>
