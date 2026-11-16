@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Build the profile README and its animated isometric SVG card.
+"""Build the profile README and its animated isometric garden SVG card.
 
 Reads profile.toml for the hand-written content, pulls live numbers from the
 GitHub GraphQL API, and writes:
 
     assets/profile-{dark,light}.svg   intro + stats + isometric contribution
-                                       skyline (bars rise on load) + languages
+                                       garden (3D trees sprout on load) + languages
     README.md                          embeds the card + plain markdown fallback
 
 Standard library only (Python 3.11+). Needs GITHUB_TOKEN in the environment.
@@ -22,6 +22,7 @@ import re
 import sys
 import tomllib
 import urllib.request
+import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -30,17 +31,22 @@ API_URL = "https://api.github.com/graphql"
 
 SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif"
 
-# `ramp` colours the skyline by GitHub's contribution level (none → 4th quartile).
+# `ramp` colours the canopies by GitHub's contribution level (none → 4th quartile);
+# ramp[0] doubles as the neutral track colour.
 PALETTES = {
     "dark": {
-        "bg": "#0b0e14", "glow": "#16304a", "border": "#262c36",
-        "text": "#e6edf3", "muted": "#8b949e", "accent": "#67e8f9", "accent2": "#c4b5fd",
-        "ramp": ["#1c232e", "#155e75", "#0e7490", "#06b6d4", "#a5f3fc"],
+        "bg": "#0b0e14", "glow": "#143524", "border": "#262c36",
+        "text": "#e6edf3", "muted": "#8b949e", "accent": "#7ee787", "accent2": "#c4b5fd",
+        "ramp": ["#1c232e", "#2f6b3a", "#2e8b46", "#3fb950", "#7ee787"],
+        "grass": "#1d3524", "plot": "#25452d", "soil": "#3b2a1e", "trunk": "#8a5d3b",
+        "blossom": "#f4a6c8", "flowers": ["#f9c74f", "#f4a6c8", "#c4b5fd"],
     },
     "light": {
-        "bg": "#ffffff", "glow": "#dff3f8", "border": "#d0d7de",
-        "text": "#1f2328", "muted": "#59636e", "accent": "#0e7490", "accent2": "#6d28d9",
-        "ramp": ["#e3e8ee", "#a5f3fc", "#22d3ee", "#0891b2", "#155e75"],
+        "bg": "#ffffff", "glow": "#e3f6e0", "border": "#d0d7de",
+        "text": "#1f2328", "muted": "#59636e", "accent": "#1a7f37", "accent2": "#6d28d9",
+        "ramp": ["#e3e8ee", "#95d5a0", "#52b788", "#2d9d5c", "#1b7a43"],
+        "grass": "#b7e4a7", "plot": "#cdf0bf", "soil": "#b08968", "trunk": "#8a5a3a",
+        "blossom": "#f28db5", "flowers": ["#f59e0b", "#ec4899", "#8b5cf6"],
     },
 }
 
@@ -242,7 +248,7 @@ def pts(points) -> str:
 
 def render_card(cfg: dict, s: dict, p: dict) -> str:
     W, pad = 850, 34
-    front: list[str] = []  # text layers, drawn over the skyline
+    front: list[str] = []  # text layers, drawn over the garden
 
     # Intro, top-left.
     front.append(
@@ -282,7 +288,7 @@ def render_card(cfg: dict, s: dict, p: dict) -> str:
         )
     stats_bottom = sy + 4 * rh - 8
 
-    # Caption, left, between intro and the low end of the skyline.
+    # Caption, left, between intro and the low end of the garden.
     cap_y = intro_bottom + 40
     front.append(
         f'<g class="a" style="animation-delay:900ms">'
@@ -294,29 +300,33 @@ def render_card(cfg: dict, s: dict, p: dict) -> str:
     )
     keep_clear = [(pad, 590, intro_bottom), (pad, pad + 330, cap_y + 26), (590, W, stats_bottom)]
 
-    # Isometric skyline. Weeks run along u (rising to the right), weekdays
-    # along v (towards the viewer); bar height is up the screen.
+    # Isometric garden. Weeks run along u (rising to the right), weekdays
+    # along v (towards the viewer); trees grow up the screen. Each day with
+    # contributions plants something: saplings and flowering shrubs on quiet days, pines
+    # and blocky broadleaf trees on busier ones, blossom trees on the best.
     weeks = s["calendar"]
     n = len(weeks)
     vx, vy = 7.5, 6.0
     ux = (W - 2 * pad - 7 * vx) / n
     uy = ux * 0.15
-    hmax, inset, plate = 92, 0.12, 7
+    hmax, shrub_h, sapling_h, inset, plate = 60, 9, 22, 0.08, 9
     peak = max((d["contributionCount"] for wk in weeks for d in wk["contributionDays"]), default=0) or 1
 
-    def bar_h(count: int) -> float:
-        return 0 if not count else 4 + (hmax - 4) * math.sqrt(count / peak)
+    def tree_h(count: int, level: int) -> float:
+        if not count:
+            return 0
+        return sapling_h if level <= 1 else 26 + (hmax - 26) * math.sqrt(count / peak)
 
-    cells = [(wi, day["weekday"], day["contributionCount"], HEAT_LEVEL.get(day["contributionLevel"], 0))
+    cells = [(wi, day["weekday"], day["contributionCount"], HEAT_LEVEL.get(day["contributionLevel"], 0), day["date"])
              for wi, wk in enumerate(weeks) for day in wk["contributionDays"]]
 
     # Drop the grid as high as the text above it allows.
     oy = 0.0
-    for w, d, count, _ in cells:
+    for w, d, count, level, _ in cells:
         x0, x1 = pad + w * ux + d * vx, pad + (w + 1) * ux + (d + 1) * vx
         for bx0, bx1, bottom in keep_clear:
             if x1 > bx0 and x0 < bx1:
-                oy = max(oy, bottom + 14 + bar_h(count) + uy * (w + 1) - vy * d)
+                oy = max(oy, bottom + 14 + tree_h(count, level) + uy * (w + 1) - vy * d)
 
     def B(w: float, d: float, h: float = 0.0) -> tuple[float, float]:
         return pad + w * ux + d * vx, oy - w * uy + d * vy - h
@@ -324,41 +334,91 @@ def render_card(cfg: dict, s: dict, p: dict) -> str:
     ramp = p["ramp"]
     sky: list[str] = []
 
-    # Base plate the bars stand on.
+    # Garden bed: a grass slab on soil, with one plot per day.
     g0, g1 = -0.4, 0.4
     top = [B(g0, g0), B(n + g1, g0), B(n + g1, 7 + g1), B(g0, 7 + g1)]
     sky.append(
-        f'<polygon points="{pts(top)}" fill="{shade(ramp[0], 0.82)}"/>'
-        f'<polygon points="{pts([B(g0, g0), B(g0, 7 + g1), B(g0, 7 + g1, -plate), B(g0, g0, -plate)])}" fill="{shade(ramp[0], 0.74)}"/>'
-        f'<polygon points="{pts([B(g0, 7 + g1), B(n + g1, 7 + g1), B(n + g1, 7 + g1, -plate), B(g0, 7 + g1, -plate)])}" fill="{shade(ramp[0], 0.64)}"/>'
+        f'<polygon points="{pts(top)}" fill="{p["grass"]}"/>'
+        f'<polygon points="{pts([B(g0, g0), B(g0, 7 + g1), B(g0, 7 + g1, -plate), B(g0, g0, -plate)])}" fill="{shade(p["soil"], 0.85)}"/>'
+        f'<polygon points="{pts([B(g0, 7 + g1), B(n + g1, 7 + g1), B(n + g1, 7 + g1, -plate), B(g0, 7 + g1, -plate)])}" fill="{shade(p["soil"], 0.65)}"/>'
+        f'<polygon points="{pts([B(g0, g0), B(g0, 7 + g1), B(g0, 7 + g1, -2.5), B(g0, g0, -2.5)])}" fill="{shade(p["grass"], 0.8)}"/>'
+        f'<polygon points="{pts([B(g0, 7 + g1), B(n + g1, 7 + g1), B(n + g1, 7 + g1, -2.5), B(g0, 7 + g1, -2.5)])}" fill="{shade(p["grass"], 0.62)}"/>'
     )
     tiles = "".join(
         f'<polygon points="{pts([B(w + inset, d + inset), B(w + 1 - inset, d + inset), B(w + 1 - inset, d + 1 - inset), B(w + inset, d + 1 - inset)])}"/>'
-        for w, d, _, _ in cells
+        for w, d, *_ in cells
     )
-    sky.append(f'<g fill="{ramp[0]}">{tiles}</g>')
+    sky.append(f'<g fill="{p["plot"]}">{tiles}</g>')
 
-    # Bars, painted back to front. Each face animates from flat to full height.
-    grow = 650
-    for w, d, count, level in sorted(cells, key=lambda c: (c[1], -c[0])):
-        h = bar_h(count)
+    # Tree models, built once in the same projection around their own base
+    # point (0, 0) at full height, then placed and scaled per day with <use>.
+    def L(w: float, d: float, h: float = 0.0) -> tuple[float, float]:
+        return w * ux + d * vx, -w * uy + d * vy - h
+
+    def poly(points, fill: str, extra: str = "") -> str:
+        return f'<polygon points="{pts(points)}" fill="{fill}"{extra}/>'
+
+    def shadow(r: float) -> str:
+        return poly([L(-r, -r), L(r, -r), L(r, r), L(-r, r)], "#000", ' opacity=".22"')
+
+    def box(r: float, z0: float, z1: float, color: str) -> str:
+        return (
+            poly([L(-r, -r, z1), L(r, -r, z1), L(r, r, z1), L(-r, r, z1)], color)
+            + poly([L(-r, -r, z0), L(-r, r, z0), L(-r, r, z1), L(-r, -r, z1)], shade(color, 0.72))
+            + poly([L(-r, r, z0), L(r, r, z0), L(r, r, z1), L(-r, r, z1)], shade(color, 0.55))
+        )
+
+    def pyramid(r: float, z0: float, z1: float, color: str) -> str:
+        apex = L(0, 0, z1)
+        return (
+            poly([L(-r, -r, z0), L(r, -r, z0), apex], color)
+            + poly([L(r, -r, z0), L(r, r, z0), apex], shade(color, 0.9))
+            + poly([L(-r, -r, z0), L(-r, r, z0), apex], shade(color, 0.76))
+            + poly([L(-r, r, z0), L(r, r, z0), apex], shade(color, 0.56))
+        )
+
+    def pine(color: str) -> str:
+        return (shadow(0.5) + box(0.09, 0, hmax * 0.2, p["trunk"])
+                + pyramid(0.52, hmax * 0.14, hmax * 0.56, color)
+                + pyramid(0.42, hmax * 0.36, hmax * 0.8, color)
+                + pyramid(0.3, hmax * 0.6, hmax, color))
+
+    def broadleaf(color: str) -> str:
+        return (shadow(0.46) + box(0.1, 0, hmax * 0.42, p["trunk"])
+                + box(0.44, hmax * 0.38, hmax * 0.76, color)
+                + box(0.27, hmax * 0.76, hmax, color))
+
+    models = {
+        "pine1": pine(ramp[1]), "leaf1": broadleaf(ramp[1]),
+        "pine2": pine(ramp[2]), "pine3": pine(ramp[3]), "pine4": pine(ramp[4]),
+        "leaf2": broadleaf(ramp[2]), "leaf3": broadleaf(ramp[3]), "bloom": broadleaf(p["blossom"]),
+    }
+    for i, flower in enumerate(p["flowers"]):
+        models[f"shrub{i}"] = shadow(0.36) + box(0.3, 0, shrub_h * 0.7, ramp[1]) + box(0.12, shrub_h * 0.7, shrub_h, flower)
+    defs = "".join(f'<g id="{name}">{body}</g>' for name, body in models.items())
+
+    # Plant back to front. Each one sprouts from its base on load.
+    for w, d, count, level, date in sorted(cells, key=lambda c: (c[1], -c[0])):
+        h = tree_h(count, level)
         if not h:
             continue
-        a, b = w + inset, w + 1 - inset
-        c, e = d + inset, d + 1 - inset
-        color = ramp[max(level, 1)]
-        delay = 700 + w * 26 + d * 22
-        faces = [
-            ([B(a, c), B(b, c), B(b, e), B(a, e)], [B(a, c, h), B(b, c, h), B(b, e, h), B(a, e, h)], color),
-            ([B(a, c), B(a, e), B(a, e), B(a, c)], [B(a, c), B(a, e), B(a, e, h), B(a, c, h)], shade(color, 0.72)),
-            ([B(a, e), B(b, e), B(b, e), B(a, e)], [B(a, e), B(b, e), B(b, e, h), B(a, e, h)], shade(color, 0.55)),
-        ]
-        for flat, full, fill in faces:
-            sky.append(
-                f'<polygon points="{pts(full)}" fill="{fill}"><animate attributeName="points" '
-                f'values="{pts(flat)};{pts(flat)};{pts(full)}" keyTimes="0;{delay / (delay + grow):.3f};1" '
-                f'dur="{(delay + grow) / 1000:.2f}s" calcMode="spline" keySplines="0 0 1 1;.2 .8 .3 1" fill="freeze"/></polygon>'
-            )
+        pick = zlib.crc32(date.encode())  # stable per day, so the garden doesn't reshuffle
+        if level <= 1 and pick % 3 == 0:
+            model, k = f"shrub{(pick // 3) % len(p['flowers'])}", 1.0
+        elif level <= 1:
+            model = "pine1" if pick % 2 else "leaf1"
+            k = (sapling_h - 6 + (pick // 7) % 7) / hmax
+        else:
+            if level == 4:
+                model = "pine4" if pick % 3 == 0 else "bloom"
+            else:
+                model = f"{'pine' if pick % 2 else 'leaf'}{level}"
+            k = h / hmax
+        x, y0 = B(w + 0.5, d + 0.5)
+        sky.append(
+            f'<g transform="translate({x:.1f} {y0:.1f})"><g class="t" style="animation-delay:{700 + w * 26 + d * 22}ms">'
+            f'<use href="#{model}" transform="scale({k:.2f})"/></g></g>'
+        )
 
     # Date range under the front edge.
     first = dt.date.fromisoformat(weeks[0]["contributionDays"][0]["date"])
@@ -370,7 +430,7 @@ def render_card(cfg: dict, s: dict, p: dict) -> str:
         f'<text class="a tiny" x="{rx:.1f}" y="{ry + 16:.1f}" text-anchor="end" fill="{p["muted"]}" style="animation-delay:2400ms">{last:%b %Y}</text>'
     )
 
-    # Top languages, bottom-right, tucked under the skyline's front edge.
+    # Top languages, bottom-right, tucked under the garden's front edge.
     langs = s["languages"]
     lx0 = 404
     lw = W - pad - lx0
@@ -414,8 +474,10 @@ def render_card(cfg: dict, s: dict, p: dict) -> str:
         ".seg { transform-box: fill-box; transform-origin: left center; transform: scaleX(0); "
         "animation: grow .7s cubic-bezier(.2,.8,.2,1) forwards; }\n"
         "@keyframes fadeup { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }\n"
+        ".t { transform: scale(0); animation: sprout .8s cubic-bezier(.2,1.5,.4,1) forwards; }\n"
         "@keyframes grow { to { transform: scaleX(1); } }\n"
-        "@media (prefers-reduced-motion: reduce) { .a, .seg { animation: none; opacity: 1; transform: none; } }"
+        "@keyframes sprout { to { transform: scale(1); } }\n"
+        "@media (prefers-reduced-motion: reduce) { .a, .seg, .t { animation: none; opacity: 1; transform: none; } }"
     )
     title = f"{cfg['name']} — {cfg['tagline']}"
     return (
@@ -423,7 +485,7 @@ def render_card(cfg: dict, s: dict, p: dict) -> str:
         f'viewBox="0 0 {W} {H}" role="img" aria-label="{esc(card_alt(cfg, s))}">\n'
         f"<title>{esc(title)}</title>\n<style>{css}</style>\n"
         f'<defs><radialGradient id="glow"><stop offset="0" stop-color="{p["glow"]}"/>'
-        f'<stop offset="1" stop-color="{p["glow"]}" stop-opacity="0"/></radialGradient></defs>\n'
+        f'<stop offset="1" stop-color="{p["glow"]}" stop-opacity="0"/></radialGradient>{defs}</defs>\n'
         f'<rect x=".5" y=".5" width="{W - 1}" height="{H - 1}" rx="14" fill="{p["bg"]}" stroke="{p["border"]}"/>\n'
         f'<ellipse cx="{cx:.0f}" cy="{cy:.0f}" rx="{W * 0.45:.0f}" ry="150" fill="url(#glow)"/>\n'
         + "\n".join(sky) + "\n" + "\n".join(front) + "\n</svg>\n"
