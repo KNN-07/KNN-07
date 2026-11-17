@@ -309,13 +309,13 @@ def render_card(cfg: dict, s: dict, p: dict) -> str:
     vx, vy = 7.5, 6.0
     ux = (W - 2 * pad - 7 * vx) / n
     uy = ux * 0.15
-    hmax, shrub_h, sapling_h, inset, plate = 60, 9, 22, 0.08, 9
+    hmax, shrub_h, sapling_h, inset, plate = 118, 14, 38, 0.08, 9
     peak = max((d["contributionCount"] for wk in weeks for d in wk["contributionDays"]), default=0) or 1
 
     def tree_h(count: int, level: int) -> float:
         if not count:
             return 0
-        return sapling_h if level <= 1 else 26 + (hmax - 26) * math.sqrt(count / peak)
+        return sapling_h if level <= 1 else 52 + (hmax - 52) * math.sqrt(count / peak)
 
     cells = [(wi, day["weekday"], day["contributionCount"], HEAT_LEVEL.get(day["contributionLevel"], 0), day["date"])
              for wi, wk in enumerate(weeks) for day in wk["contributionDays"]]
@@ -378,15 +378,15 @@ def render_card(cfg: dict, s: dict, p: dict) -> str:
         )
 
     def pine(color: str) -> str:
-        return (shadow(0.5) + box(0.09, 0, hmax * 0.2, p["trunk"])
-                + pyramid(0.52, hmax * 0.14, hmax * 0.56, color)
-                + pyramid(0.42, hmax * 0.36, hmax * 0.8, color)
-                + pyramid(0.3, hmax * 0.6, hmax, color))
+        return (shadow(0.9) + box(0.16, 0, hmax * 0.2, p["trunk"])
+                + pyramid(1.0, hmax * 0.14, hmax * 0.56, color)
+                + pyramid(0.8, hmax * 0.36, hmax * 0.8, color)
+                + pyramid(0.58, hmax * 0.6, hmax, color))
 
     def broadleaf(color: str) -> str:
-        return (shadow(0.46) + box(0.1, 0, hmax * 0.42, p["trunk"])
-                + box(0.44, hmax * 0.38, hmax * 0.76, color)
-                + box(0.27, hmax * 0.76, hmax, color))
+        return (shadow(0.85) + box(0.17, 0, hmax * 0.42, p["trunk"])
+                + box(0.82, hmax * 0.38, hmax * 0.76, color)
+                + box(0.5, hmax * 0.76, hmax, color))
 
     models = {
         "pine1": pine(ramp[1]), "leaf1": broadleaf(ramp[1]),
@@ -394,7 +394,7 @@ def render_card(cfg: dict, s: dict, p: dict) -> str:
         "leaf2": broadleaf(ramp[2]), "leaf3": broadleaf(ramp[3]), "bloom": broadleaf(p["blossom"]),
     }
     for i, flower in enumerate(p["flowers"]):
-        models[f"shrub{i}"] = shadow(0.36) + box(0.3, 0, shrub_h * 0.7, ramp[1]) + box(0.12, shrub_h * 0.7, shrub_h, flower)
+        models[f"shrub{i}"] = shadow(0.46) + box(0.4, 0, shrub_h * 0.7, ramp[1]) + box(0.17, shrub_h * 0.7, shrub_h, flower)
     defs = "".join(f'<g id="{name}">{body}</g>' for name, body in models.items())
 
     # Plant back to front. Each one sprouts from its base on load.
@@ -407,7 +407,7 @@ def render_card(cfg: dict, s: dict, p: dict) -> str:
             model, k = f"shrub{(pick // 3) % len(p['flowers'])}", 1.0
         elif level <= 1:
             model = "pine1" if pick % 2 else "leaf1"
-            k = (sapling_h - 6 + (pick // 7) % 7) / hmax
+            k = (sapling_h - 10 + (pick // 7) % 11) / hmax
         else:
             if level == 4:
                 model = "pine4" if pick % 3 == 0 else "bloom"
